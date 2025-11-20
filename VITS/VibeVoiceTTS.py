@@ -119,14 +119,17 @@ class VibeVoiceTTS:
             )
         
         try:
-            # Import VibeVoice
-            from transformers import AutoModel, AutoProcessor
             import warnings
+            import transformers
             warnings.filterwarnings("ignore")
+            transformers.logging.set_verbosity_error()
             
             logger.info(f"Loading VibeVoice model: {model_name}")
             
-            # Load model
+            # Import from transformers with trust_remote_code
+            from transformers import AutoModel, AutoProcessor
+            
+            # Load model with trust_remote_code
             self.model = AutoModel.from_pretrained(
                 str(model_path),
                 trust_remote_code=True,
@@ -145,12 +148,16 @@ class VibeVoiceTTS:
                     f"Place in: {self.models_dir / 'tokenizer'}/"
                 )
             
+            # Load processor with tokenizer path
             self.processor = AutoProcessor.from_pretrained(
                 str(model_path),
                 trust_remote_code=True,
                 local_files_only=True,
                 language_model_pretrained_name=str(tokenizer_path),
             )
+            
+            # Set model to eval mode
+            self.model.eval()
             
             self.current_model = model_name
             logger.info(f"Model {model_name} loaded successfully")
@@ -259,30 +266,64 @@ class VibeVoiceTTS:
                          for k, v in inputs.items()}
             
             # Set diffusion steps
-            self.model.set_ddpm_inference_steps(diffusion_steps)
+            if hasattr(self.model, 'set_ddpm_inference_steps'):
+                self.model.set_ddpm_inference_steps(diffusion_steps)
             
-            # Generate
-            logger.info(f"Generating speech with {diffusion_steps} steps...")
+            # Calculate max_new_tokens based on model config
+            input_length = inputs['input_ids'].shape[-1]
+            if hasattr(self.model.config, 'decoder_config') and hasattr(self.model.config.decoder_config, 'max_position_embeddings'):
+                max_pos_emb = self.model.config.decoder_config.max_position_embeddings
+                calculated_max_tokens = max(1024, int((max_pos_emb - input_length) * 0.8))
+                max_new_tokens = min(8192, calculated_max_tokens)
+            else:
+                max_new_tokens = 2048
+            
+            logger.info(f"Generating speech with {diffusion_steps} steps, max_new_tokens: {max_new_tokens}...")
+            
+            # Generate speech
             with torch.no_grad():
                 output = self.model.generate(
                     **inputs,
                     guidance_scale=cfg_scale,
-                    max_new_tokens=2048,
+                    max_new_tokens=max_new_tokens,
                     use_sampling=False,
+                    do_sample=False,
+                    temperature=0.95,
+                    top_p=0.95,
                 )
             
             # Extract audio
-            audio_tensor = output.audio_values
-            
-            # Convert to numpy
-            if audio_tensor.dim() == 3:
-                audio = audio_tensor.squeeze().cpu().numpy()
+            if hasattr(output, 'audio_values'):
+                audio_tensor = output.audio_values
+            elif hasattr(output, 'waveform'):
+                audio_tensor = output.waveform
             else:
-                audio = audio_tensor.cpu().numpy()
+                # Fallback: assume output is the audio tensor
+                audio_tensor = output
             
-            # Save audio
+            # Convert to numpy and handle dimensions
+            audio_tensor = audio_tensor.cpu()
+            
+            if audio_tensor.dim() == 3:
+                # Shape: (batch, channels, samples) or (batch, 1, samples)
+                audio = audio_tensor.squeeze().numpy()
+            elif audio_tensor.dim() == 2:
+                # Shape: (batch, samples) or (channels, samples)
+                if audio_tensor.shape[0] == 1:
+                    audio = audio_tensor.squeeze(0).numpy()
+                else:
+                    audio = audio_tensor[0].numpy()
+            else:
+                audio = audio_tensor.numpy()
+            
+            # Ensure audio is 1D
+            if audio.ndim > 1:
+                audio = audio.flatten()
+            
+            # Save audio at 24kHz (VibeVoice's native sample rate)
             sf.write(save_path, audio, 24000)
             logger.info(f"Audio saved to: {save_path}")
+            logger.info(f"Audio duration: {len(audio)/24000:.2f} seconds")
             
             return save_path
             
