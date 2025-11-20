@@ -168,6 +168,31 @@ def TTS_response(text, voice, rate, volume, pitch, am, voc, lang, male,
             set_all_random_seed(seed)
             output = cosyvoice.predict_cross_lingual(text, prompt_wav, speed_factor=speed_factor, save_path=save_path)
         return output
+    elif tts_method == 'VibeVoice克隆声音':
+        try:
+            # Get voice sample for cloning
+            voice_sample = None
+            if prompt_wav_upload is not None:
+                voice_sample = prompt_wav_upload
+            elif prompt_wav_record is not None:
+                voice_sample = prompt_wav_record
+            elif use_mic_voice and question_audio is not None:
+                voice_sample = question_audio
+            
+            # Use VibeVoice for TTS with optional voice cloning
+            vibevoice.predict(
+                text=text,
+                save_path=save_path,
+                voice_sample_path=voice_sample,
+                model_name='VibeVoice-1.5B',  # Default to faster model
+                seed=seed,
+                diffusion_steps=20,  # Default quality
+                speed_factor=speed_factor
+            )
+            return save_path
+        except Exception as e:
+            gr.Warning(f"VibeVoice生成失败: {e}")
+            return None
     else:
         gr.Warning('未知模型')
     return None
@@ -454,7 +479,7 @@ def webui_setting(talk=False):
     else:
         character = None
         talker_method = None
-    tts_method = gr.Radio(['Edge-TTS', 'PaddleTTS', 'GPT-SoVITS克隆声音', 'CosyVoice-SFT模式', 'CosyVoice-克隆翻译模式', 'Comming Soon!!!'], label="Text To Speech Method", value='Edge-TTS')
+    tts_method = gr.Radio(['Edge-TTS', 'PaddleTTS', 'GPT-SoVITS克隆声音', 'CosyVoice-SFT模式', 'CosyVoice-克隆翻译模式', 'VibeVoice克隆声音', 'Comming Soon!!!'], label="Text To Speech Method", value='Edge-TTS')
     tts_method.change(fn=tts_model_change, inputs=[tts_method], outputs=[tts_method])
     asr_method = gr.Radio(choices=['Whisper-tiny', 'Whisper-base', 'FunASR', 'OmniSenseVoice-quantize', 'OmniSenseVoice', 'Comming Soon!!!'], value='Whisper-base', label='语音识别模型选择')
     asr_method.change(fn=asr_model_change, inputs=[asr_method], outputs=[asr_method])
@@ -882,6 +907,7 @@ def tts_model_change(model_name, progress=gr.Progress(track_tqdm=True)):
     """更换TTS模型，并根据选择的模型加载相应资源。"""
     global tts
     global cosyvoice
+    global vibevoice
     # 清理显存，释放不必要的显存以便加载新模型
     clear_memory()
 
@@ -911,6 +937,19 @@ def tts_model_change(model_name, progress=gr.Progress(track_tqdm=True)):
             model_path = 'checkpoints/CosyVoice_ckpt/CosyVoice-300M'
             cosyvoice = CosyVoiceTTS(model_path)
             gr.Info("CosyVoice模型导入成功，更适合进行克隆声音和翻译声音")
+        elif model_name == 'VibeVoice克隆声音':
+            from VITS import VibeVoiceTTS
+            models_dir = 'checkpoints/VibeVoice'
+            vibevoice = VibeVoiceTTS(models_dir=models_dir)
+            # Check if models are available
+            available_models = vibevoice.get_available_models()
+            if available_models:
+                gr.Info(f"VibeVoice模型导入成功，可用模型: {', '.join(available_models)}\n支持实时语音克隆，请上传参考音频进行克隆")
+            else:
+                gr.Warning(f"VibeVoice未找到模型，请从HuggingFace下载:\n"
+                          "VibeVoice-1.5B: https://huggingface.co/microsoft/VibeVoice-1.5B\n"
+                          "VibeVoice-Large: https://huggingface.co/aoi-ot/VibeVoice-Large\n"
+                          f"并放置到 {models_dir} 目录")
         else:
             gr.Warning("未知TTS模型，请检查模型名称或提出Issue")
     except Exception as e:
@@ -932,6 +971,10 @@ if __name__ == "__main__":
     llm = llm_class.init_model('直接回复 Direct Reply')
     success_print("默认不使用LLM模型，直接回复问题，同时减少显存占用！")
 
+    # Initialize global TTS variables
+    vibevoice = None
+    cosyvoice = None
+    
     # 尝试加载GPT-SoVITS模块
     try:
         from VITS import *

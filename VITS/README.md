@@ -63,4 +63,94 @@ python VITS/XTTS.py
 
 ![](../docs/XTTS.png)
 
+### VibeVoice（实时语音克隆）
+
+VibeVoice是微软的高级文本到语音模型，具有实时语音克隆功能。该模型支持高质量的语音合成，能够从短音频样本（推荐20-30秒）克隆声音。
+
+**基于集成**: [https://github.com/groxaxo/VibeVoice-FastAPI](https://github.com/groxaxo/VibeVoice-FastAPI)
+
+**官方VibeVoice**: [https://github.com/microsoft/VibeVoice](https://github.com/microsoft/VibeVoice)
+
+**主要特性**:
+1. **实时语音克隆**: 从20-30秒的音频克隆任何声音
+2. **高质量输出**: 自然发音，具有适当的韵律和情感
+3. **快速推理**: VibeVoice-1.5B模型（约6GB显存）用于快速生成
+4. **质量模式**: VibeVoice-Large（约20GB显存）用于最高质量
+5. **语音速度控制**: 调整语速从0.8倍到1.2倍
+6. **灵活参数**: 控制扩散步骤、CFG比例和随机种子
+
+**可用模型**:
+- **VibeVoice-1.5B**: 快速模型，约6GB显存
+  - 下载: [https://huggingface.co/microsoft/VibeVoice-1.5B](https://huggingface.co/microsoft/VibeVoice-1.5B)
+- **VibeVoice-Large**: 最佳质量，约20GB显存
+  - 下载: [https://huggingface.co/aoi-ot/VibeVoice-Large](https://huggingface.co/aoi-ot/VibeVoice-Large)
+
+**安装说明**:
+
+1. 安装依赖:
+```bash
+pip install -r VITS/requirements_vibevoice.txt
+```
+
+2. 下载模型并放置在 `checkpoints/VibeVoice/` 目录：
+```
+checkpoints/VibeVoice/
+├── VibeVoice-1.5B/
+│   └── (模型文件)
+├── VibeVoice-Large/
+│   └── (模型文件)
+└── tokenizer/
+    ├── tokenizer_config.json
+    ├── vocab.json
+    ├── merges.txt
+    └── tokenizer.json
+```
+
+3. 从HuggingFace下载Qwen分词器: [https://huggingface.co/Qwen/Qwen2.5-1.5B/tree/main](https://huggingface.co/Qwen/Qwen2.5-1.5B/tree/main)
+
+**使用方法**:
+
+```python
+from VITS import VibeVoiceTTS
+
+# 初始化
+tts = VibeVoiceTTS(models_dir='checkpoints/VibeVoice')
+
+# 基本使用（无语音克隆）
+tts.predict(
+    text="你好！这是VibeVoice文本到语音的测试。",
+    save_path="output.wav",
+    model_name="VibeVoice-1.5B"
+)
+
+# 使用语音克隆
+tts.predict(
+    text="这将使用克隆的声音。",
+    save_path="output_cloned.wav",
+    voice_sample_path="reference_voice.wav",
+    model_name="VibeVoice-1.5B",
+    seed=42,
+    diffusion_steps=20,
+    speed_factor=1.0
+)
+```
+
+**在WebUI中使用**:
+1. 在TTS方法下拉菜单中选择"VibeVoice克隆声音"
+2. 上传参考音频文件（推荐20-30秒）
+3. 输入文本
+4. 使用克隆的声音生成语音
+
+**参数说明**:
+- **seed**: 用于可重复性的随机种子
+- **diffusion_steps**: 10-40（数值越高质量越好，但速度越慢）
+- **speed_factor**: 0.8-1.2（语音速度调节）
+- **cfg_scale**: 1.3（分类器自由引导比例）
+
+**测试脚本**:
+```bash
+# 运行测试脚本检查设置
+python VITS/test_vibevoice.py
+```
+
 
