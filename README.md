@@ -64,6 +64,10 @@
 **2025.02 Update** 📆
 
 - **Added OmniSenseVoice Model for Faster Speech Recognition**
+
+**2025.11 Update** 📆
+
+- **Integrated VibeVoice for realtime voice cloning with Microsoft's advanced TTS model, supporting high-quality speech synthesis with voice cloning from short audio samples**
 ---
 
 <details>
@@ -165,6 +169,7 @@ The design philosophy of Linly-Talker is to create a new form of human-computer 
 - [x] Integrated MuseTalk into the Linly-Talker WebUI.
 - [x] Added CosyVoice, which provides high-quality text-to-speech (TTS) functionality and voice cloning capabilities. Additionally, updated to Wav2Lipv2 to enhance image quality effects.
 - [x] Added Linly-Talker API documentation with detailed interface descriptions.
+- [x] Integrated VibeVoice for `realtime voice cloning` with advanced TTS capabilities from Microsoft's VibeVoice model
 - [ ] `Real-time` Speech Recognition (Enable conversation and communication between humans and digital entities using voice)
 
 > [!IMPORTANT]
@@ -614,6 +619,62 @@ Currently, Linly-Talker integrates three features from CosyVoice: pre-trained vo
 </table>
 
 
+
+### VibeVoice（Realtime Voice Cloning）
+
+VibeVoice is Microsoft's advanced text-to-speech model with realtime voice cloning capabilities. The model supports high-quality speech synthesis with the ability to clone voices from short audio samples (20-30 seconds recommended).
+
+**Integration based on**: [https://github.com/groxaxo/VibeVoice-FastAPI](https://github.com/groxaxo/VibeVoice-FastAPI)
+
+**Official VibeVoice**: [https://github.com/microsoft/VibeVoice](https://github.com/microsoft/VibeVoice)
+
+**Key Features**:
+1. **Realtime Voice Cloning**: Clone any voice from 20-30 seconds of audio
+2. **High-Quality Output**: Natural-sounding speech with proper prosody and emotion
+3. **Fast Inference**: VibeVoice-1.5B model (~6GB VRAM) for quick generation
+4. **Quality Modes**: VibeVoice-Large (~20GB VRAM) for highest quality
+5. **Voice Speed Control**: Adjust speech rate from 0.8x to 1.2x
+6. **Flexible Parameters**: Control diffusion steps, CFG scale, and random seed
+
+**Available Models**:
+- **VibeVoice-1.5B**: Fast model, ~6GB VRAM
+  - Download: [https://huggingface.co/microsoft/VibeVoice-1.5B](https://huggingface.co/microsoft/VibeVoice-1.5B)
+- **VibeVoice-Large**: Best quality, ~20GB VRAM
+  - Download: [https://huggingface.co/aoi-ot/VibeVoice-Large](https://huggingface.co/aoi-ot/VibeVoice-Large)
+
+**Setup Instructions**:
+
+1. Install dependencies:
+```bash
+pip install -r VITS/requirements_vibevoice.txt
+```
+
+2. Download models and place in `checkpoints/VibeVoice/`:
+```
+checkpoints/VibeVoice/
+├── VibeVoice-1.5B/
+│   └── (model files)
+├── VibeVoice-Large/
+│   └── (model files)
+└── tokenizer/
+    ├── tokenizer_config.json
+    ├── vocab.json
+    ├── merges.txt
+    └── tokenizer.json
+```
+
+3. Download Qwen tokenizer from [https://huggingface.co/Qwen/Qwen2.5-1.5B/tree/main](https://huggingface.co/Qwen/Qwen2.5-1.5B/tree/main)
+
+**Usage**:
+1. Select "VibeVoice克隆声音" in the TTS Method dropdown
+2. Upload a reference audio file (20-30 seconds recommended)
+3. Enter your text
+4. Generate speech with cloned voice
+
+**Parameters**:
+- **Seed**: Random seed for reproducibility
+- **Diffusion Steps**: 10-40 (higher = better quality, slower)
+- **Speed Factor**: 0.8-1.2 (voice speed adjustment)
 
 ### Coming Soon
 

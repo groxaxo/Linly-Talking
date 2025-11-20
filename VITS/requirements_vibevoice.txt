@@ -1,0 +1,19 @@
+# VibeVoice TTS Requirements
+# Based on VibeVoice-FastAPI requirements
+
+transformers>=4.51.3
+accelerate>=1.6.0
+torch>=2.0.0
+torchaudio>=2.0.0
+numpy>=1.20.0
+librosa>=0.9.0
+soundfile>=0.12.0
+scipy
+diffusers
+tqdm
+ml-collections
+peft>=0.17.0
+huggingface_hub>=0.25.1
+absl-py
+bitsandbytes>=0.48.1
+protobuf

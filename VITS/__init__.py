@@ -12,6 +12,13 @@ except Exception as e:
     print("CosyVoice导入失败，原因：", e)
     print("使用CosyVoice语音克隆前需要安装对应的环境")
 
+try:
+    from .VibeVoiceTTS import VibeVoiceTTS
+    print("VibeVoice导入成功")
+except Exception as e:
+    print("VibeVoice导入失败，原因：", e)
+    print("使用VibeVoice语音克隆前需要安装对应的环境，请执行 pip install -r VITS/requirements_vibevoice.txt")
+
 # try:
 #     from .XTTS import XTTS
 #     print("XTTS导入成功")
